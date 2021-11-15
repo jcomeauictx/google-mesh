@@ -32,6 +32,10 @@ def decode(filename):
                     data[offset:offset + 64]
                 )
             )
+        offset += 1
+        namelength, offset = varint(data, offset)
+        logging.debug('processing file: %s',
+                      data[offset:offset + namelength].decode())
         offset = end_chunk
 
 def varint(data, offset):
