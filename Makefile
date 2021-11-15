@@ -1,3 +1,9 @@
 REPORT ?= /tmp/diagnostic-report
-all: decode.py $(REPORT)
+# on Bullseye, `make PYLINT=pylint`
+PYLINT ?= pylint3
+all: pylint run
+run: decode.py $(REPORT)
 	./$+
+pylint: decode.lint
+%.lint: %.py
+	$(PYLINT) $<
