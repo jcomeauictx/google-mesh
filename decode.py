@@ -24,7 +24,15 @@ def decode(filename):
                     data[offset + chunklength:offset + chunklength + 64]
                 )
             )
-        offset += chunklength
+        end_chunk = offset + chunklength
+        if data[offset] != 0x0a:
+            raise ValueError(
+                'Filename not found at 0x%x: %s' % (
+                    offset,
+                    data[offset:offset + 64]
+                )
+            )
+        offset = end_chunk
 
 def varint(data, offset):
     '''
