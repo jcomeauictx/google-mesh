@@ -24,6 +24,7 @@ def decode(filename):
                     data[offset + chunklength:offset + chunklength + 64]
                 )
             )
+        offset += chunklength
 
 def varint(data, offset):
     '''
