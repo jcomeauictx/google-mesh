@@ -34,8 +34,24 @@ def decode(filename):
             )
         offset += 1
         namelength, offset = varint(data, offset)
-        logging.debug('processing file: %s',
-                      data[offset:offset + namelength].decode())
+        filename = data[offset:offset + namelength].decode()
+        logging.debug('processing file: %s', filename)
+        offset += namelength
+        if data[offset:offset + 1] != MARKER:
+            raise ValueError(
+                'Marker not found at 0x%x: %s' % (
+                    offset + chunklength,
+                    data[offset + chunklength:offset + chunklength + 64]
+                )
+            )
+        chunklength, offset = varint(data, offset + 1)
+        if offset + chunklength != end_chunk:
+            raise ValueError(
+                'Discrepancy in end_chunk: 0x%x != 0x%x' % (
+                    offset + chunklength,
+                    end_chunk
+                )
+            )
         offset = end_chunk
 
 def varint(data, offset):
