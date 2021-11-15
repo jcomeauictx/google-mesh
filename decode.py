@@ -17,7 +17,7 @@ def decode(filename):
     print(data[:offset].decode())
     while offset < len(data):
         chunklength, offset = varint(data, offset + 1)
-        if data[offset + chunklength] != MARKER:
+        if data[offset + chunklength:offset + chunklength + 1] != MARKER:
             raise ValueError(
                 'Marker not found at 0x%x: %s' % (
                     offset + chunklength,
@@ -30,14 +30,18 @@ def varint(data, offset):
     Decode variable integer and return new offset
     '''
     value = 0
+    partial = []
     while True:
         byte = data[offset]
-        logging.debug('varint: byte=0x%x', byte)
-        value = (value << 7) + (byte & 0x7f)
+        partial.append(byte & 0x7f)
+        logging.debug('varint: byte=0x%x, partial=%s', byte, partial)
         offset += 1
         if byte & 0x80 == 0:
             break
-    logging.debug('value: 0x%x', value)
+    while partial:
+        byte = partial.pop(-1)
+        value = (value << 7) + byte
+    logging.debug('varint: value=0x%x', value)
     return value, offset
 
 if __name__ == '__main__':
