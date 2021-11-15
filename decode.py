@@ -6,6 +6,11 @@ import sys, logging  # pylint: disable=multiple-imports
 
 logging.basicConfig(level=logging.DEBUG if __debug__ else logging.INFO)
 MARKER = b'\x12'  # ^R marks entries
+MARKERS = {
+    MARKER: 'entry',
+    b'\x1a': 'sysctl',
+    b'\x0a': 'filename',
+}
 
 def decode(filename):
     '''
@@ -25,7 +30,7 @@ def decode(filename):
                 )
             )
         end_chunk = offset + chunklength
-        if data[offset] != 0x0a:
+        if data[offset:offset + 1] != b'\x0a':
             raise ValueError(
                 'Filename not found at 0x%x: %s' % (
                     offset,
