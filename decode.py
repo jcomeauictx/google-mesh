@@ -7,9 +7,11 @@ import sys, logging  # pylint: disable=multiple-imports
 logging.basicConfig(level=logging.DEBUG if __debug__ else logging.INFO)
 MARKER = b'\x12'  # ^R marks entries
 MARKERS = {
+    b'\x0a': 'filename',
     MARKER: 'entry',
     b'\x1a': 'sysctl',
-    b'\x0a': 'filename',
+    b'"': 'unknown0',  # b'\x22'
+    b'*': 'unknown1',  # b'\x2a'
 }
 
 def decode(filename):
@@ -22,7 +24,7 @@ def decode(filename):
     print(data[:offset].decode())
     while offset < len(data):
         chunklength, offset = varint(data, offset + 1)
-        if data[offset + chunklength:offset + chunklength + 1] != MARKER:
+        if data[offset + chunklength:offset + chunklength + 1] not in MARKERS:
             raise ValueError(
                 'Marker not found at 0x%x: %s' % (
                     offset + chunklength,
