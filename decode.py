@@ -50,6 +50,16 @@ def decode(filename):
                 )
             )
         chunklength, offset = varint(data, offset + 1)
+        if offset + chunklength < end_chunk:
+            offset += chunklength  # skip file data
+            if data[offset:offset + 1] == b'\x1a':
+                logging.debug('found sysctl alias to previous data')
+                chunklength, offset = varint(data, offset + 1)
+                logging.debug('sysctl: %s',
+                              data[offset:offset + chunklength].decode())
+            else:
+                raise ValueError(
+                    'Unrecognized marker %r' % data[offset:offset + 1])
         if offset + chunklength != end_chunk:
             raise ValueError(
                 'Discrepancy in end_chunk: 0x%x != 0x%x' % (
