@@ -15,12 +15,12 @@ MARKERS = defaultdict(lambda: 'unimplemented', {
     b'\x2a': 'unknown1',  # b'*'
 })
 
-def decode(data=None, filename=None, stack=None):
+def decode(data=None, filename=None, stack=None, dumpdir=None):
     '''
     Decode compressed document
     '''
-    stack = stack or []
-    begun = False
+    stack = stack if stack is not None else []
+    begun = bool(dumpdir)
     if data is None and filename:
         with open(filename, 'rb') as infile:
             data = infile.read()
@@ -40,6 +40,18 @@ def decode(data=None, filename=None, stack=None):
             os.makedirs(dumpdir, exist_ok=True)
             os.chdir(dumpdir)
             begun = True
+        elif begun and MARKERS[marker] == 'entry':
+            substack = []
+            entrydata = stack.pop(-1)
+            decode(entrydata, None, substack, dumpdir)
+            if len(substack) >= 2:
+                with open(os.path.join(dumpdir, substack.pop(0)),
+                          'wb') as outfile:
+                    outfile.write(substack.pop(0))
+                logging.debug('remaining substack: %s', substack)
+            else:
+                raise ValueError(
+                    'Decode of %r failed: %s' % (entrydata, substack))
 
 def string(data, offset, stack):
     '''
