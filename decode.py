@@ -2,7 +2,8 @@
 '''
 Decode Google Mesh diagnostic-report
 '''
-import sys, logging  # pylint: disable=multiple-imports
+import sys, os, logging  # pylint: disable=multiple-imports
+from datetime import datetime
 from collections import defaultdict
 
 logging.basicConfig(level=logging.DEBUG if __debug__ else logging.INFO)
@@ -19,6 +20,7 @@ def decode(data=None, filename=None, stack=None):
     Decode compressed document
     '''
     stack = stack or []
+    begun = False
     if data is None and filename:
         with open(filename, 'rb') as infile:
             data = infile.read()
@@ -29,6 +31,15 @@ def decode(data=None, filename=None, stack=None):
         # pylint: disable=eval-used
         offset = eval(MARKERS[marker])(data, offset + 1, stack)
         logging.debug('stack: %s', stack)
+        if not begun and filename and len(stack) == 1:
+            dumpdir = os.path.join(
+                'diagnostics',
+                datetime.fromtimestamp(os.stat(filename).st_mtime).isoformat(),
+                stack.pop().rstrip()
+            )
+            os.makedirs(dumpdir, exist_ok=True)
+            os.chdir(dumpdir)
+            begun = True
 
 def string(data, offset, stack):
     '''
