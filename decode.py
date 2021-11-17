@@ -30,63 +30,6 @@ def decode(data=None, filename=None, stack=None):
         offset = eval(MARKERS[marker])(data, offset + 1, stack)
         logging.debug('stack: %s', stack)
 
-def oldstuff(filename):
-    '''
-    initial code
-    '''
-    with open(filename, 'rb') as infile:
-        data = infile.read()
-    offset = data.index('\x12')
-    print(data[:offset].decode())
-    while False:
-        chunklength, offset = varint(data, offset + 1)
-        if data[offset + chunklength:offset + chunklength + 1] not in MARKERS:
-            raise ValueError(
-                'Marker not found at 0x%x: %s' % (
-                    offset + chunklength,
-                    data[offset + chunklength:offset + chunklength + 64]
-                )
-            )
-        end_chunk = offset + chunklength
-        if data[offset:offset + 1] not in MARKERS:
-            raise ValueError(
-                'Filename not found at 0x%x: %s' % (
-                    offset,
-                    data[offset:offset + 64]
-                )
-            )
-        offset += 1
-        namelength, offset = varint(data, offset)
-        filename = data[offset:offset + namelength].decode()
-        logging.debug('processing file: %s', filename)
-        offset += namelength
-        if data[offset:offset + 1] != '\x12':
-            raise ValueError(
-                'Marker not found at 0x%x: %s' % (
-                    offset + chunklength,
-                    data[offset + chunklength:offset + chunklength + 64]
-                )
-            )
-        chunklength, offset = varint(data, offset + 1)
-        if offset + chunklength < end_chunk:
-            offset += chunklength  # skip file data
-            if data[offset:offset + 1] == b'\x1a':
-                logging.debug('found sysctl alias to previous data')
-                chunklength, offset = varint(data, offset + 1)
-                logging.debug('sysctl: %s',
-                              data[offset:offset + chunklength].decode())
-            else:
-                raise ValueError(
-                    'Unrecognized marker %r' % data[offset:offset + 1])
-        if offset + chunklength != end_chunk:
-            raise ValueError(
-                'Discrepancy in end_chunk: 0x%x != 0x%x' % (
-                    offset + chunklength,
-                    end_chunk
-                )
-            )
-        offset = end_chunk
-
 def string(data, offset, stack):
     '''
     retrieve variable length string from data
@@ -105,6 +48,30 @@ def entry(data, offset, stack):
     bytestring, offset = varbytes(data, offset)
     stack.append(bytestring)
     return offset
+
+def sysctl(data, offset, stack):
+    '''
+    return supposed sysctl setting
+    '''
+    return string(data, offset, stack)
+
+def unknown0(data, offset, stack):
+    '''
+    return unknown identifier
+    '''
+    return string(data, offset, stack)
+
+def unknown1(data, offset, stack):
+    '''
+    return uknown data, possibly attached to unknown identifier preceding
+    '''
+    return entry(data, offset, stack)
+
+def unimplemented(data, offset, stack):
+    '''
+    raise NotImplementedError
+    '''
+    raise NotImplementedError('Unknown marker byte at offset 0x%x' % offset)
 
 def varbytes(data, offset):
     '''
