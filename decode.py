@@ -14,18 +14,21 @@ MARKERS = defaultdict(lambda: 'unimplemented', {
     b'\x2a': 'unknown1',  # b'*'
 })
 
-def decode(filename):
+def decode(data=None, filename=None, stack=None):
     '''
     Decode compressed document
     '''
-    with open(filename, 'rb') as infile:
-        data = infile.read()
+    stack = stack or []
+    if data is None and filename:
+        with open(filename, 'rb') as infile:
+            data = infile.read()
     offset = 0
     while offset < len(data):
         marker = data[offset:offset + 1]
         logging.debug('marker: %r (%s)', marker, MARKERS[marker])
         # pylint: disable=eval-used
-        offset = eval(MARKERS[marker])(data, offset + 1)
+        offset = eval(MARKERS[marker])(data, offset + 1, stack)
+        logging.debug('stack: %s', stack)
 
 def oldstuff(filename):
     '''
@@ -84,12 +87,23 @@ def oldstuff(filename):
             )
         offset = end_chunk
 
-def string(data, offset):
+def string(data, offset, stack):
     '''
     retrieve variable length string from data
     '''
     bytestring, offset = varbytes(data, offset)
-    print(bytestring.decode())
+    text = bytestring.decode()
+    stack.append(text)
+    return offset
+
+def entry(data, offset, stack):
+    '''
+    retreive file name, data, and possibly other attributes
+
+    a subentry is data only
+    '''
+    bytestring, offset = varbytes(data, offset)
+    stack.append(bytestring)
     return offset
 
 def varbytes(data, offset):
@@ -121,4 +135,4 @@ def varint(data, offset):
 if __name__ == '__main__':
     if len(sys.argv) == 1:
         sys.argv.append('diagnostic-report')
-    decode(sys.argv[1])
+    decode(None, sys.argv[1])
