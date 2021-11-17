@@ -33,20 +33,23 @@ def decode(data=None, filename=None, stack=None, dumpdir=None):
         logging.debug('stack: %s', stack)
         if not begun and filename and len(stack) == 1:
             dumpdir = os.path.join(
+                os.path.abspath(os.curdir),
                 'diagnostics',
                 datetime.fromtimestamp(os.stat(filename).st_mtime).isoformat(),
                 stack.pop().rstrip()
             )
             os.makedirs(dumpdir, exist_ok=True)
-            os.chdir(dumpdir)
             begun = True
-        elif begun and MARKERS[marker] == 'entry':
+        elif begun and filename != stack and MARKERS[marker] == 'entry':
             substack = []
             entrydata = stack.pop(-1)
-            decode(entrydata, None, substack, dumpdir)
+            # sloppy trick of setting filename=substack for 2nd-level process
+            decode(entrydata, substack, substack, dumpdir)
             if len(substack) >= 2:
-                with open(os.path.join(dumpdir, substack.pop(0)),
-                          'wb') as outfile:
+                logging.debug('dumpdir: %s', dumpdir)
+                filepath = os.path.join(dumpdir, substack.pop(0).lstrip(os.sep))
+                os.makedirs(os.path.dirname(filepath), exist_ok=True)
+                with open(filepath, 'wb') as outfile:
                     outfile.write(substack.pop(0))
                 logging.debug('remaining substack: %s', substack)
             else:
@@ -96,7 +99,7 @@ def unimplemented(data, offset, stack):
     '''
     raise NotImplementedError(
         'Unknown marker byte at offset 0x%x: %r' % (
-            offset, data[offset:offset + 64]))
+            offset - 1, data[offset - 1:offset + 63]))
 
 def varbytes(data, offset):
     '''
