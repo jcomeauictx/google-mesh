@@ -71,7 +71,9 @@ def unimplemented(data, offset, stack):
     '''
     raise NotImplementedError
     '''
-    raise NotImplementedError('Unknown marker byte at offset 0x%x' % offset)
+    raise NotImplementedError(
+        'Unknown marker byte at offset 0x%x: %r' % (
+            offset, data[offset:offset + 64]))
 
 def varbytes(data, offset):
     '''
